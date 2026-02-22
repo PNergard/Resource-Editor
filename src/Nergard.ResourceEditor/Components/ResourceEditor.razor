@@ -1,0 +1,126 @@
+@using Nergard.ResourceEditor.Features.Shared.Components
+@using Nergard.ResourceEditor.Features.ContentTypes.Components
+@using Nergard.ResourceEditor.Features.Tabs.Components
+@using Nergard.ResourceEditor.Features.Dashboard.Components
+@using Nergard.ResourceEditor.Features.Languages.Components
+@using Nergard.ResourceEditor.Features.DisplayChannels.Components
+@using Nergard.ResourceEditor.Features.EditorHints.Components
+@using Nergard.ResourceEditor.Features.Views.Components
+@using Nergard.ResourceEditor.Features.Overrides.Components
+
+@if (_showMigrationDialog)
+{
+    <MigrationDialog IsVisible="true" OnComplete="HandleMigrationComplete" />
+}
+else
+{
+    <ResourceEditorLayout>
+        <LeftMenuContent>
+            <LeftMenu
+                PageTypes="_pageTypes"
+                BlockTypes="_blockTypes"
+                MediaTypes="_mediaTypes"
+                Tabs="_tabs"
+                ViewFiles="_viewFiles"
+                SelectedItem="_selectedItemName"
+                OnItemSelected="HandleItemSelected"
+                OnDashboardClicked="HandleDashboardClicked" />
+        </LeftMenuContent>
+        <MainContent>
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_currentMode == EditorMode.None)
+            {
+                <Dashboard OnLanguageSelected="HandleLanguageSelected" OnViewSelected="HandleViewSelected" />
+            }
+            else if (_currentMode == EditorMode.ContentType && _contentTypeTranslation != null)
+            {
+                <ContentTypeEditor
+                    Translation="_contentTypeTranslation"
+                    Languages="_languages"
+                    SelectedLanguageId="@_selectedLanguageId"
+                    SelectedLanguageIdChanged="HandleLanguageFilterChanged"
+                    OnSave="() => SaveTranslationAsync(_contentTypeTranslation, t => ContentTypeService.SaveTranslations(t))"
+                    OnReset="HandleResetContentType"
+                    IsSaving="_isSaving" />
+            }
+            else if (_currentMode == EditorMode.Language && _selectedLanguage != null)
+            {
+                <LanguageOverview
+                    Language="_selectedLanguage"
+                    PageTypes="_pageTypes"
+                    BlockTypes="_blockTypes"
+                    MediaTypes="_mediaTypes"
+                    Tabs="_tabs"
+                    OnNavigateToItem="HandleNavigateFromLanguageView"
+                    OnSaved="HandleLanguageViewSaved" />
+            }
+            else if (_currentMode == EditorMode.Tab && _tabTranslation != null)
+            {
+                <TabEditor
+                    Translation="_tabTranslation"
+                    Languages="_languages"
+                    SelectedLanguageId="@_selectedLanguageId"
+                    SelectedLanguageIdChanged="HandleLanguageFilterChanged"
+                    OnSave="() => SaveTranslationAsync(_tabTranslation, t => TabService.SaveTranslations(t))"
+                    OnReset="HandleResetTab"
+                    IsSaving="_isSaving" />
+            }
+            else if (_currentMode == EditorMode.Display && _displayTranslation != null)
+            {
+                <DisplayEditor
+                    Translation="_displayTranslation"
+                    Languages="_languages"
+                    SelectedLanguageId="@_selectedLanguageId"
+                    SelectedLanguageIdChanged="HandleLanguageFilterChanged"
+                    OnSave="() => SaveTranslationAsync(_displayTranslation, t => DisplayService.SaveTranslations(t))"
+                    OnReset="HandleResetDisplay"
+                    IsSaving="_isSaving" />
+            }
+            else if (_currentMode == EditorMode.EditorHint && _editorHintTranslation != null)
+            {
+                <EditorHintEditor
+                    Translation="_editorHintTranslation"
+                    Languages="_languages"
+                    SelectedLanguageId="@_selectedLanguageId"
+                    SelectedLanguageIdChanged="HandleLanguageFilterChanged"
+                    OnSave="() => SaveTranslationAsync(_editorHintTranslation, t => EditorHintService.SaveTranslations(t))"
+                    OnReset="HandleResetEditorHint"
+                    IsSaving="_isSaving" />
+            }
+            else if (_currentMode == EditorMode.View && _viewTranslation != null)
+            {
+                <ViewEditor
+                    Translation="_viewTranslation"
+                    Languages="_languages"
+                    SelectedLanguageId="@_selectedLanguageId"
+                    SelectedLanguageIdChanged="HandleLanguageFilterChanged"
+                    OnSave="() => SaveTranslationAsync(_viewTranslation, t => ViewService.SaveTranslations(t))"
+                    OnReset="HandleResetView"
+                    IsSaving="_isSaving" />
+            }
+            else if (_currentMode == EditorMode.Override)
+            {
+                <OverrideManager Languages="_languages" />
+            }
+        </MainContent>
+    </ResourceEditorLayout>
+}
+
+<MudDialog @bind-Visible="_showUnsavedDialog" Options="@(new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.Small })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
+            @UIStrings.DialogUnsavedTitle
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>@UIStrings.DialogUnsavedMessage</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="CancelNavigation">@UIStrings.DialogCancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ConfirmNavigation">@UIStrings.DialogDiscard</MudButton>
+    </DialogActions>
+</MudDialog>

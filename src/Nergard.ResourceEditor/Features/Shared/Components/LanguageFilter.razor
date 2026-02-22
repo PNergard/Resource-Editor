@@ -1,0 +1,18 @@
+<MudSelect T="string" Value="@SelectedLanguageId" ValueChanged="SelectedLanguageIdChanged"
+           Label="Language"
+           Variant="Variant.Outlined"
+           Margin="Margin.Dense"
+           Dense="true"
+           AnchorOrigin="Origin.BottomCenter">
+    <MudSelectItem T="string" Value="@string.Empty">All Languages</MudSelectItem>
+    @foreach (var lang in Languages)
+    {
+        <MudSelectItem T="string" Value="@lang.Id">@lang.Name</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public string SelectedLanguageId { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> SelectedLanguageIdChanged { get; set; }
+    [Parameter] public IReadOnlyList<LanguageInfo> Languages { get; set; } = [];
+}

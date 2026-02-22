@@ -1,0 +1,66 @@
+<MudDialog Visible="true" Options="@(new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.Medium, BackdropClick = false, CloseOnEscapeKey = false })">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Sync" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Migrating Localization Files</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_isDone && _result != null)
+        {
+            @if (_result.Success)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4">
+                    Migration complete — @_result.FilesCreated files created.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                    Migration completed with @_result.Errors.Count error(s).
+                </MudAlert>
+                @foreach (var error in _result.Errors)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Error">@error</MudText>
+                }
+            }
+
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2"><b>Next steps:</b></MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    New <code>Re*.xml</code> files have been created in <code>Resources/Translations/</code>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.Info" IconColor="Color.Info">
+                    They are automatically included via the existing <code>EmbeddedResource</code> glob
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Warning">
+                    Remove the old XML files (ContentTypeNames.xml, GroupNames.xml, etc.) when ready
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.RestartAlt" IconColor="Color.Info">
+                    Restart the application after removing old files
+                </MudListItem>
+            </MudList>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudProgressLinear Color="Color.Primary"
+                                   Value="@(_total > 0 ? (double)_completed / _total * 100 : 0)"
+                                   Rounded="true"
+                                   Size="Size.Medium" />
+                <MudText Typo="Typo.body1">@_currentStep</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Step @(_completed + 1) of @_total
+                </MudText>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="HandleClose"
+                   Disabled="!_isDone">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>

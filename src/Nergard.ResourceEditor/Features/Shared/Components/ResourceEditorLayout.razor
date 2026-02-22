@@ -1,0 +1,39 @@
+@using MudBlazor
+@using Nergard.ResourceEditor.Features.Shared.Constants
+
+<link href="_content/Nergard.ResourceEditor/css/resource-editor.css" rel="stylesheet" />
+
+<MudLayout Class="re-layout">
+    <MudDrawer Open="true" Variant="@DrawerVariant.Persistent" Elevation="2"
+               Width="@SidebarWidth" Class="re-drawer">
+        <MudDrawerHeader Class="re-drawer-header" Dense="true">
+            <MudIcon Icon="@Icons.Material.Filled.Translate" Size="Size.Small" Class="mr-2" />
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@UIStrings.ToolName</MudText>
+        </MudDrawerHeader>
+        <div class="re-sidebar-content">
+            @LeftMenuContent
+
+            @* Help menu item at bottom *@
+            <MudDivider Class="my-2" />
+            <MudNavMenu Dense="true">
+                <MudNavLink Icon="@Icons.Material.Filled.HelpOutline" IconColor="Color.Info"
+                            OnClick="() => _helpOpen = true">
+                    @UIStrings.MenuHelp
+                </MudNavLink>
+            </MudNavMenu>
+        </div>
+    </MudDrawer>
+
+    <MudMainContent Class="re-main">
+        @MainContent
+    </MudMainContent>
+</MudLayout>
+
+<HelpDrawer @bind-Open="_helpOpen" />
+
+@code {
+    private const string SidebarWidth = "240px";
+    private bool _helpOpen;
+    [Parameter] public RenderFragment? LeftMenuContent { get; set; }
+    [Parameter] public RenderFragment? MainContent { get; set; }
+}

@@ -1,0 +1,24 @@
+@using MudBlazor
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudMainContent Class="pa-4">
+        <ResourceEditor />
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _isDarkMode;
+
+    [Parameter]
+    public bool IsDarkMode { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _isDarkMode = IsDarkMode;
+    }
+}

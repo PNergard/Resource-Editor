@@ -1,0 +1,96 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+
+<MudNavMenu Dense="true">
+    <MudNavLink Icon="@Icons.Material.Filled.Dashboard" IconColor="Color.Default"
+                OnClick="OnDashboardClicked">
+        @UIStrings.MenuDashboard
+    </MudNavLink>
+
+    @if (PageTypes.Any())
+    {
+        <MudNavGroup Title="@UIStrings.MenuPages" Icon="@Icons.Material.Filled.Article" IconColor="Color.Primary"
+                     Expanded="_pagesExpanded" ExpandedChanged="v => _pagesExpanded = v">
+            @foreach (var item in PageTypes)
+            {
+                <MudNavLink OnClick="@(() => SelectItem(NavigationTypes.Page, item.Name))"
+                            Class="@(SelectedItem == item.Name ? "active" : "")">
+                    @item.DisplayName
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+
+    @if (BlockTypes.Any())
+    {
+        <MudNavGroup Title="@UIStrings.MenuBlocks" Icon="@Icons.Material.Filled.Widgets" IconColor="Color.Secondary"
+                     Expanded="_blocksExpanded" ExpandedChanged="v => _blocksExpanded = v">
+            @foreach (var item in BlockTypes)
+            {
+                <MudNavLink OnClick="@(() => SelectItem(NavigationTypes.Block, item.Name))"
+                            Class="@(SelectedItem == item.Name ? "active" : "")">
+                    @item.DisplayName
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+
+    @if (MediaTypes.Any())
+    {
+        <MudNavGroup Title="@UIStrings.MenuMedia" Icon="@Icons.Material.Filled.PermMedia" IconColor="Color.Tertiary"
+                     Expanded="_mediaExpanded" ExpandedChanged="v => _mediaExpanded = v">
+            @foreach (var item in MediaTypes)
+            {
+                <MudNavLink OnClick="@(() => SelectItem(NavigationTypes.Media, item.Name))"
+                            Class="@(SelectedItem == item.Name ? "active" : "")">
+                    @item.DisplayName
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+
+    @if (Tabs.Any())
+    {
+        <MudNavGroup Title="@UIStrings.MenuTabs" Icon="@Icons.Material.Filled.Tab" IconColor="Color.Info"
+                     Expanded="_tabsExpanded" ExpandedChanged="v => _tabsExpanded = v">
+            @foreach (var item in Tabs)
+            {
+                <MudNavLink OnClick="@(() => SelectItem(NavigationTypes.Tab, item.Name))"
+                            Class="@(SelectedItem == item.Name ? "active" : "")">
+                    @item.DisplayName
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+
+    <MudNavLink Icon="@Icons.Material.Filled.Devices" IconColor="Color.Primary"
+                OnClick="@(() => SelectItem(NavigationTypes.Display, NavigationTypes.Display))"
+                Class="@(SelectedItem == NavigationTypes.Display ? "active" : "")">
+        @UIStrings.MenuDisplay
+    </MudNavLink>
+
+    <MudNavLink Icon="@Icons.Material.Filled.HelpOutline" IconColor="Color.Primary"
+                OnClick="@(() => SelectItem(NavigationTypes.EditorHint, NavigationTypes.EditorHint))"
+                Class="@(SelectedItem == NavigationTypes.EditorHint ? "active" : "")">
+        @UIStrings.MenuEditorHints
+    </MudNavLink>
+
+    @if (ViewFiles.Any())
+    {
+        <MudNavGroup Title="@UIStrings.MenuViews" Icon="@Icons.Material.Filled.WebAsset" IconColor="Color.Success"
+                     Expanded="_viewsExpanded" ExpandedChanged="v => _viewsExpanded = v">
+            @foreach (var item in ViewFiles)
+            {
+                <MudNavLink OnClick="@(() => SelectItem(NavigationTypes.View, item.FileName))"
+                            Class="@(SelectedItem == item.FileName ? "active" : "")">
+                    @item.DisplayName
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+
+    <MudNavLink Icon="@Icons.Material.Filled.Tune" IconColor="Color.Warning"
+                OnClick="@(() => SelectItem(NavigationTypes.Override, NavigationTypes.Override))"
+                Class="@(SelectedItem == NavigationTypes.Override ? "active" : "")">
+        @UIStrings.MenuOverrides
+    </MudNavLink>
+</MudNavMenu>

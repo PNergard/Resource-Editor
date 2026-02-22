@@ -1,0 +1,71 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+@using Nergard.ResourceEditor.Features.Shared.Models
+@using Nergard.ResourceEditor.Features.Tabs.Models
+@inherits EditorComponentBase<TabTranslation>
+
+<MudCard Elevation="2" Class="@(Translation.HasChanges ? "re-unsaved-indicator re-editor-enter" : "re-editor-enter")"
+         Style="padding-bottom: 72px;">
+    <MudCardHeader Class="re-card-header">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Tab" />
+                <MudText Typo="Typo.h6">@Translation.TabName</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (Translation.HasChanges)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Class="ma-0">
+                    Unsaved
+                </MudChip>
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @* Language Filter & Translate *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+            <LanguageFilter SelectedLanguageId="@SelectedLanguageId"
+                            SelectedLanguageIdChanged="OnLanguageFilterChanged"
+                            Languages="Languages" />
+            <MudSpacer />
+            @if (Options.Value.EnableAutomatedTranslation && IsTranslationAvailable)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                           OnClick="TranslateMissingFieldsAsync"
+                           Disabled="@IsTranslating">
+                    @(IsTranslating ? "Translating..." : "Translate Missing")
+                </MudButton>
+            }
+        </MudStack>
+
+        @* Display Name Section *@
+        <div class="mb-6">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                @UIStrings.LabelDisplayName
+            </MudText>
+            <MudGrid Spacing="3">
+                @foreach (var lang in FilteredLanguages)
+                {
+                    <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                        <LocalizableTextField @bind-Value="Translation.DisplayName.Values[lang.Id]"
+                                              Label="@lang.Name"
+                                              LocalizationKey="@GetTabKey()"
+                                              Language="@lang.Id"
+                                              ContentTypeName="@($"Tab: {Translation.TabName}")"
+                                              SourceValue="@(Translation.DisplayName.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                              FieldType="TranslationFieldType.TabDisplayName"
+                                              ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
+    </MudCardContent>
+</MudCard>
+
+<EditorActionBar HasChanges="@Translation.HasChanges"
+                 IsSaving="@IsSaving"
+                 EnableFileSaving="@Options.Value.EnableFileSaving"
+                 OnSave="OnSave"
+                 OnReset="OnReset" />

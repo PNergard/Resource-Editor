@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="EPiServer.CMS.UI.Core" Version="12.29.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="8.0.22" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageVersion Include="MudBlazor" Version="8.15.0" />
+  </ItemGroup>
+</Project>

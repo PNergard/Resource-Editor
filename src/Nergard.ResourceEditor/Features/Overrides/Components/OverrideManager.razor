@@ -1,0 +1,397 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+
+<MudCard Elevation="2" Class="re-editor-enter">
+    <MudCardHeader Class="re-card-header">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" />
+                <MudText Typo="Typo.h6">Localization Overrides</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.FileDownload"
+                           OnClick="ExportToCsv"
+                           Size="Size.Small">
+                    Export to CSV
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.FileUpload"
+                           OnClick="@(() => _showImportDialog = true)"
+                           Size="Size.Small">
+                    Import from CSV
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddDialog"
+                           Size="Size.Small">
+                    Add Override
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.DeleteForever"
+                           OnClick="@(() => _showClearAllDialog = true)"
+                           Size="Size.Small">
+                    Clear All
+                </MudButton>
+            </MudStack>
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!_overrides.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                No overrides have been created yet. Click "Add Override" to create your first override.
+            </MudAlert>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Overrides allow you to change localization values at runtime without redeploying.
+                They take precedence over XML-based translations.
+            </MudText>
+        }
+        else
+        {
+            <MudStack Row="true" Spacing="4" Wrap="Wrap.Wrap" Class="mb-4">
+                <MudSelect T="string" Value="@_languageFilter" ValueChanged="OnLanguageFilterChanged"
+                           Label="Language"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Dense="true"
+                           AnchorOrigin="Origin.BottomCenter"
+                           Style="min-width: 200px;">
+                    <MudSelectItem T="string" Value="@string.Empty">All Languages</MudSelectItem>
+                    @foreach (var lang in Languages)
+                    {
+                        <MudSelectItem T="string" Value="@lang.Id">@lang.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_searchFilter"
+                              Placeholder="Search by property..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Style="min-width: 300px;" />
+            </MudStack>
+
+            <MudTable Items="@FilteredGroupedOverrides"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true">
+                <HeaderContent>
+                    <MudTh>Property</MudTh>
+                    <MudTh>Language</MudTh>
+                    <MudTh>Caption</MudTh>
+                    <MudTh>Help Text</MudTh>
+                    <MudTh>Modified</MudTh>
+                    <MudTh Style="width: 160px;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Property">
+                        <MudTooltip Text="@context.DisplayName">
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.DisplayName</MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd DataLabel="Language">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@GetLanguageName(context.Language)</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Caption">
+                        <MudTooltip Text="@(context.CaptionValue ?? "-")">
+                            <MudText Typo="Typo.body2">@TruncateValue(context.CaptionValue)</MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd DataLabel="Help Text">
+                        <MudTooltip Text="@(context.HelpTextValue ?? "-")">
+                            <MudText Typo="Typo.body2">@TruncateValue(context.HelpTextValue)</MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd DataLabel="Modified">
+                        <MudTooltip Text="@($"By {context.ModifiedBy}")">
+                            <MudText Typo="Typo.body2">@context.ModifiedDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudText>
+                        </MudTooltip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Color="Color.Primary"
+                                       OnClick="@(() => OpenEditDialog(context))" />
+                        @if (EnableFileSaving)
+                        {
+                            <MudTooltip Text="Save to XML file">
+                                <MudIconButton Icon="@Icons.Material.Filled.SaveAlt"
+                                               Size="Size.Small"
+                                               Color="Color.Success"
+                                               OnClick="@(() => SaveToXml(context))" />
+                            </MudTooltip>
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+@* Add/Edit Dialog - Same layout for both *@
+<MudDialog @bind-Visible="_showEditDialog" Options="@(new DialogOptions { MaxWidth = ShowAddDialogMultiLanguage ? MaxWidth.Large : MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(_isEditing ? "Edit Override" : "Add Override")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudSelect T="ContentTypeInfo"
+                       Value="_selectedContentType"
+                       ValueChanged="OnContentTypeSelected"
+                       Label="Content Type"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Content Type is required"
+                       ToStringFunc="@(ct => ct?.DisplayName ?? "")"
+                       Disabled="_isEditing"
+                       Class="mb-4">
+                @foreach (var ct in _allContentTypes)
+                {
+                    <MudSelectItem T="ContentTypeInfo" Value="@ct">@ct.DisplayName (@ct.Category)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="PropertyOption"
+                       Value="_selectedProperty"
+                       ValueChanged="OnPropertySelected"
+                       Label="Property"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Property is required"
+                       ToStringFunc="@(p => p?.Name ?? "")"
+                       Disabled="@(_selectedContentType == null || _isEditing)"
+                       Class="mb-4">
+                @foreach (var prop in _contentTypeProperties)
+                {
+                    <MudSelectItem T="PropertyOption" Value="@prop">@prop.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="string" Value="_editModel.Language"
+                       ValueChanged="OnLanguageSelected"
+                       Label="Language"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Language is required"
+                       Disabled="_isEditing"
+                       Class="mb-4">
+                @foreach (var lang in Languages)
+                {
+                    <MudSelectItem T="string" Value="@lang.Id">@lang.Name (@lang.Id)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_editModel.CaptionValue"
+                          Label="Caption Override"
+                          Variant="Variant.Outlined"
+                          HelperText="Display name shown in the editor"
+                          Lines="2"
+                          Class="mb-4" />
+
+            <MudTextField @bind-Value="_editModel.HelpTextValue"
+                          Label="Help Text Override"
+                          Variant="Variant.Outlined"
+                          HelperText="Help text shown below the field"
+                          Lines="2"
+                          Class="mb-4" />
+
+            <MudTextField Value="@_generatedKey"
+                          Label="Generated Localization Key"
+                          Variant="Variant.Filled"
+                          ReadOnly="true"
+                          HelperText="Keys will be generated with /caption or /help suffix"
+                          Class="mb-4" />
+
+            @if (ShowAddDialogMultiLanguage && _addDialogLanguageRows.Count > 0)
+            {
+                <MudDivider Class="my-4" />
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Translate" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Other Languages</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                               OnClick="TranslateAllEmptyAsync"
+                               Disabled="@(_isTranslatingAll || (string.IsNullOrWhiteSpace(_editModel.CaptionValue) && string.IsNullOrWhiteSpace(_editModel.HelpTextValue)))">
+                        @(_isTranslatingAll ? "Translating..." : "Translate Empty")
+                    </MudButton>
+                </MudStack>
+
+                @foreach (var row in _addDialogLanguageRows)
+                {
+                    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-2">
+                        <MudGrid Spacing="2">
+                            <MudItem xs="2">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mt-2">@row.Language.Name</MudChip>
+                            </MudItem>
+                            <MudItem xs="5">
+                                <MudTextField @bind-Value="row.CaptionValue"
+                                              Label="Caption"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="row.IsTranslating"
+                                              Placeholder="@(row.IsTranslating ? "Translating..." : "")" />
+                            </MudItem>
+                            <MudItem xs="5">
+                                <MudTextField @bind-Value="row.HelpTextValue"
+                                              Label="Help Text"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="row.IsTranslating"
+                                              Placeholder="@(row.IsTranslating ? "Translating..." : "")" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="CloseEditDialog">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveOverride" Disabled="_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Delete Confirmation Dialog *@
+<MudDialog @bind-Visible="_showDeleteDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
+            Confirm Delete
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>Are you sure you want to delete this override?</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">
+            <strong>Property:</strong> @_deleteTarget?.DisplayName<br/>
+            <strong>Language:</strong> @GetLanguageName(_deleteTarget?.Language ?? "")<br/>
+            @if (!string.IsNullOrEmpty(_deleteTarget?.CaptionValue))
+            {
+                <span><strong>Caption:</strong> @_deleteTarget.CaptionValue<br/></span>
+            }
+            @if (!string.IsNullOrEmpty(_deleteTarget?.HelpTextValue))
+            {
+                <span><strong>Help Text:</strong> @_deleteTarget.HelpTextValue</span>
+            }
+        </MudText>
+        <MudAlert Severity="Severity.Warning" Class="mt-3">
+            The original XML translation will be used after deletion.
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => _showDeleteDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteOverride">Delete</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Clear All Confirmation Dialog *@
+<MudDialog @bind-Visible="_showClearAllDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Class="mr-2" />
+            Clear All Overrides
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            <strong>Warning:</strong> This will permanently delete ALL localization overrides.
+            This action cannot be undone!
+        </MudAlert>
+        <MudText Class="mb-4">
+            Total overrides to be deleted: <strong>@_overrides.Count</strong>
+        </MudText>
+        <MudTextField @bind-Value="_clearAllConfirmText"
+                      Label="Type DELETE to confirm"
+                      Variant="Variant.Outlined"
+                      HelperText="This confirmation is required to prevent accidental deletion" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default"
+                   OnClick="@(() => { _showClearAllDialog = false; _clearAllConfirmText = string.Empty; })">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   OnClick="ClearAllOverrides"
+                   Disabled="@(_clearAllConfirmText != "DELETE")">
+            Delete All Overrides
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Import Dialog *@
+<MudDialog @bind-Visible="_showImportDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.FileUpload" Class="mr-2" />
+            Import Overrides from CSV
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            CSV format: ContentType, Property, OverrideType (Caption/HelpText), Language, Value
+        </MudAlert>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="@(file => _importFile = file)">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Select CSV File
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        @if (_importFile != null)
+        {
+            <MudText Class="mt-2">Selected: @_importFile.Name (@_importFile.Size bytes)</MudText>
+        }
+
+        @if (!string.IsNullOrEmpty(_importStatus))
+        {
+            <MudAlert Severity="@(_importStatus.StartsWith("Error") ? Severity.Error : Severity.Info)" Class="mt-4">
+                @_importStatus
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default"
+                   OnClick="@(() => { _showImportDialog = false; _importFile = null; _importStatus = string.Empty; })">
+            Cancel
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="ImportFromCsv"
+                   Disabled="@(_importFile == null)">
+            Import
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+

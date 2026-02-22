@@ -1,0 +1,139 @@
+<MudStack Spacing="6" Class="re-editor-enter">
+    @* Languages section *@
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Languages</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                     Style="pointer-events: none;">
+                @_summaries.Count languages
+            </MudChip>
+        </MudStack>
+
+        <MudGrid Spacing="4">
+            @foreach (var lang in _summaries)
+            {
+                var overallPercent = GetLanguageOverallPercent(lang);
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Outlined="true" Style="height: 100%; cursor: pointer;"
+                             @onclick="() => OnLanguageSelected.InvokeAsync(lang.LanguageId)">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudText Typo="Typo.h6">@lang.LanguageName</MudText>
+                                    @if (lang.IsDefault)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                 Variant="Variant.Outlined" Style="pointer-events: none;">
+                                            default
+                                        </MudChip>
+                                    }
+                                    <MudSpacer />
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(overallPercent >= 100 ? Color.Success : Color.Warning)"
+                                             Variant="Variant.Filled"
+                                             Style="pointer-events: none;">
+                                        @overallPercent%
+                                    </MudChip>
+                                </MudStack>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                @* Content Types *@
+                                <MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Content Types</MudText>
+                                        <MudText Typo="Typo.caption">@lang.ContentTypesComplete / @lang.ContentTypesTotal</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="@GetPercent(lang.ContentTypesComplete, lang.ContentTypesTotal)"
+                                                       Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                                </MudStack>
+                                @* Properties *@
+                                <MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Properties</MudText>
+                                        <MudText Typo="Typo.caption">@lang.PropertiesComplete / @lang.PropertiesTotal</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="@GetPercent(lang.PropertiesComplete, lang.PropertiesTotal)"
+                                                       Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                                </MudStack>
+                                @* Tabs *@
+                                <MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tabs</MudText>
+                                        <MudText Typo="Typo.caption">@lang.TabsComplete / @lang.TabsTotal</MudText>
+                                    </MudStack>
+                                    <MudProgressLinear Value="@GetPercent(lang.TabsComplete, lang.TabsTotal)"
+                                                       Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudPaper>
+
+    @* Views section — only if view files exist *@
+    @if (_viewSummaries.Count > 0)
+    {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.WebAsset" Color="Color.Tertiary" />
+                <MudText Typo="Typo.h6">Views</MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                         Style="pointer-events: none;">
+                    @_viewSummaries.Count files
+                </MudChip>
+            </MudStack>
+
+            <MudGrid Spacing="4">
+                @foreach (var view in _viewSummaries)
+                {
+                    var viewPercent = GetViewOverallPercent(view);
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard Outlined="true" Style="height: 100%; cursor: pointer;"
+                                 @onclick="() => OnViewSelected.InvokeAsync(view.FileName)">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudText Typo="Typo.h6">@view.DisplayName</MudText>
+                                        <MudSpacer />
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(viewPercent >= 100 ? Color.Success : Color.Warning)"
+                                                 Variant="Variant.Filled"
+                                                 Style="pointer-events: none;">
+                                            @viewPercent%
+                                        </MudChip>
+                                    </MudStack>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    @foreach (var lang in view.Languages)
+                                    {
+                                        <MudStack>
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@lang.LanguageName</MudText>
+                                                    @if (lang.IsDefault)
+                                                    {
+                                                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
+                                                    }
+                                                </MudStack>
+                                                <MudText Typo="Typo.caption">@lang.CompletedKeys / @lang.TotalKeys</MudText>
+                                            </MudStack>
+                                            <MudProgressLinear Value="@GetPercent(lang.CompletedKeys, lang.TotalKeys)"
+                                                               Color="Color.Tertiary" Rounded="true" Size="Size.Small" />
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudPaper>
+    }
+</MudStack>

@@ -1,0 +1,308 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+
+<MudCard Elevation="2" Class="@(HasChanges ? "re-unsaved-indicator re-editor-enter" : "re-editor-enter")"
+         Style="padding-bottom: 72px;">
+    <MudCardContent>
+        @if (_isLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 200px;">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Loading translations...</MudText>
+            </MudStack>
+        }
+        else
+        {
+        @* Metrics Card *@
+        <MudCard Outlined="true" Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@Language.Name</MudText>
+                        @if (Language.IsDefault)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">default</MudChip>
+                        }
+                        <MudSpacer />
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(CompleteTypeCount + CompletePropertyCount + CompleteTabCount) of @(TotalTypeCount + TotalPropertyCount + TotalTabCount) complete
+                        </MudText>
+                        @if (_translationEnabled && !Language.IsDefault)
+                        {
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                                       OnClick="TranslateIncompleteAsync"
+                                       Disabled="@(_isTranslating || _isLoading)">
+                                @(_isTranslating ? "Translating..." : "Translate Incomplete")
+                            </MudButton>
+                        }
+                        @if (HasChanges)
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Class="ma-0">
+                                Unsaved
+                            </MudChip>
+                        }
+                    </MudStack>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    @* Content Types *@
+                    <MudStack>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Content Types</MudText>
+                            <MudText Typo="Typo.caption">@CompleteTypeCount / @TotalTypeCount</MudText>
+                        </MudStack>
+                        <MudProgressLinear Value="@GetPercent(CompleteTypeCount, TotalTypeCount)"
+                                           Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                    </MudStack>
+                    @* Properties *@
+                    <MudStack>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Properties</MudText>
+                            <MudText Typo="Typo.caption">@CompletePropertyCount / @TotalPropertyCount</MudText>
+                        </MudStack>
+                        <MudProgressLinear Value="@GetPercent(CompletePropertyCount, TotalPropertyCount)"
+                                           Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                    </MudStack>
+                    @* Tabs *@
+                    <MudStack>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Tabs</MudText>
+                            <MudText Typo="Typo.caption">@CompleteTabCount / @TotalTabCount</MudText>
+                        </MudStack>
+                        <MudProgressLinear Value="@GetPercent(CompleteTabCount, TotalTabCount)"
+                                           Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                    </MudStack>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
+                 ActivePanelIndexChanged="OnActiveTabChanged">
+            @* Content Types Tab *@
+            <MudTabPanel Text="Content Types">
+                @if (_isTabLoading)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 100px;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                    </MudStack>
+                }
+                else
+                {
+                <MudToolBar Dense="true" Class="mb-2" Style="padding: 0;">
+                    <MudTooltip Text="@(_showAllTypes ? "Showing all — click to hide completed" : "Hiding completed — click to show all")">
+                        <MudToggleIconButton @bind-Toggled="_showAllTypes"
+                                             Icon="@Icons.Material.Filled.FilterAlt"
+                                             ToggledIcon="@Icons.Material.Filled.FilterAltOff"
+                                             Size="Size.Small"
+                                             Color="Color.Primary"
+                                             ToggledColor="Color.Default" />
+                    </MudTooltip>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(_showAllTypes ? "All" : "Incomplete only")
+                    </MudText>
+                    <MudSpacer />
+                    <MudChipSet T="string" SelectionMode="SelectionMode.SingleSelection"
+                                SelectedValue="@_selectedTypeCategory"
+                                SelectedValueChanged="@((string v) => _selectedTypeCategory = v ?? "All")">
+                        <MudChip T="string" Value="@("All")" Size="Size.Small" Variant="Variant.Text">All</MudChip>
+                        <MudChip T="string" Value="@("Page")" Size="Size.Small" Variant="Variant.Text">Page</MudChip>
+                        <MudChip T="string" Value="@("Block")" Size="Size.Small" Variant="Variant.Text">Block</MudChip>
+                        <MudChip T="string" Value="@("Media")" Size="Size.Small" Variant="Variant.Text">Media</MudChip>
+                    </MudChipSet>
+                    <MudTooltip Text="@(_typesExpanded ? "Collapse all" : "Expand all")">
+                        <MudIconButton Icon="@(_typesExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                                       Size="Size.Small"
+                                       OnClick="ToggleTypesExpanded" />
+                    </MudTooltip>
+                </MudToolBar>
+
+                var filteredTypes = FilteredEntries;
+                @if (filteredTypes.Count > 0)
+                {
+                    <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                        @foreach (var entry in filteredTypes)
+                        {
+                            <MudExpansionPanel Expanded="@_typesExpanded">
+                                <TitleContent>
+                                    <MudText Typo="Typo.body1">@entry.Translation.ContentTypeName</MudText>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField @bind-Value="entry.Translation.Name.Values[Language.Id]"
+                                                          Label="Name"
+                                                          Variant="Variant.Outlined"
+                                                          Margin="Margin.Dense"
+                                                          FullWidth="true" />
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField @bind-Value="entry.Translation.Description.Values[Language.Id]"
+                                                          Label="Description"
+                                                          Variant="Variant.Outlined"
+                                                          Margin="Margin.Dense"
+                                                          FullWidth="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mt-4">
+                        All content type translations are complete!
+                    </MudAlert>
+                }
+                }
+            </MudTabPanel>
+
+            @* Properties Tab *@
+            <MudTabPanel Text="Properties">
+                @if (_isTabLoading)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 100px;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                    </MudStack>
+                }
+                else
+                {
+                <MudToolBar Dense="true" Class="mb-2" Style="padding: 0;">
+                    <MudTooltip Text="@(_showAllProperties ? "Showing all — click to hide completed" : "Hiding completed — click to show all")">
+                        <MudToggleIconButton @bind-Toggled="_showAllProperties"
+                                             Icon="@Icons.Material.Filled.FilterAlt"
+                                             ToggledIcon="@Icons.Material.Filled.FilterAltOff"
+                                             Size="Size.Small"
+                                             Color="Color.Primary"
+                                             ToggledColor="Color.Default" />
+                    </MudTooltip>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(_showAllProperties ? "All" : "Incomplete only")
+                    </MudText>
+                    <MudSpacer />
+                    <MudChipSet T="string" SelectionMode="SelectionMode.SingleSelection"
+                                SelectedValue="@_selectedPropertyCategory"
+                                SelectedValueChanged="@((string v) => _selectedPropertyCategory = v ?? "All")">
+                        <MudChip T="string" Value="@("All")" Size="Size.Small" Variant="Variant.Text">All</MudChip>
+                        <MudChip T="string" Value="@("Page")" Size="Size.Small" Variant="Variant.Text">Page</MudChip>
+                        <MudChip T="string" Value="@("Block")" Size="Size.Small" Variant="Variant.Text">Block</MudChip>
+                        <MudChip T="string" Value="@("Media")" Size="Size.Small" Variant="Variant.Text">Media</MudChip>
+                    </MudChipSet>
+                    <MudTooltip Text="@(_propertiesExpanded ? "Collapse all" : "Expand all")">
+                        <MudIconButton Icon="@(_propertiesExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                                       Size="Size.Small"
+                                       OnClick="TogglePropertiesExpanded" />
+                    </MudTooltip>
+                </MudToolBar>
+
+                var filteredProps = FilteredPropertyRows;
+                @if (filteredProps.Count > 0)
+                {
+                    <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                        @foreach (var row in filteredProps)
+                        {
+                            <MudExpansionPanel Expanded="@_propertiesExpanded">
+                                <TitleContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Style="width: 100%;">
+                                        <MudText Typo="Typo.body1" Style="flex-grow: 1;">@row.Property.PropertyName</MudText>
+                                        @if (row.IsShared)
+                                        {
+                                            <MudTooltip Text="@GetSharedTooltip(row.Property.PropertyName)">
+                                                <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small"
+                                                         Color="Color.Info" Style="font-size: 1rem;" />
+                                            </MudTooltip>
+                                        }
+                                    </MudStack>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField Value="@GetPropertyLabelValue(row.Property)"
+                                                          ValueChanged="@((string v) => SetPropertyLabelValue(row.Property, v))"
+                                                          Label="Label"
+                                                          Variant="Variant.Outlined"
+                                                          Margin="Margin.Dense"
+                                                          FullWidth="true" />
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6">
+                                            <MudTextField Value="@GetPropertyDescValue(row.Property)"
+                                                          ValueChanged="@((string v) => SetPropertyDescValue(row.Property, v))"
+                                                          Label="Description"
+                                                          Variant="Variant.Outlined"
+                                                          Margin="Margin.Dense"
+                                                          FullWidth="true" />
+                                        </MudItem>
+                                    </MudGrid>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mt-4">
+                        All property translations are complete!
+                    </MudAlert>
+                }
+                }
+            </MudTabPanel>
+
+            @* Tabs Tab *@
+            <MudTabPanel Text="Tabs">
+                @if (_isTabLoading)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 100px;">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                    </MudStack>
+                }
+                else
+                {
+                <MudToolBar Dense="true" Class="mb-2" Style="padding: 0;">
+                    <MudSpacer />
+                    <MudTooltip Text="@(_tabsExpanded ? "Collapse all" : "Expand all")">
+                        <MudIconButton Icon="@(_tabsExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                                       Size="Size.Small"
+                                       OnClick="ToggleTabsExpanded" />
+                    </MudTooltip>
+                </MudToolBar>
+
+                @if (_tabRows.Count > 0)
+                {
+                    <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                        @foreach (var tab in _tabRows)
+                        {
+                            <MudExpansionPanel Expanded="@_tabsExpanded">
+                                <TitleContent>
+                                    <MudText Typo="Typo.body1">@tab.TabInfo.Name</MudText>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudTextField @bind-Value="tab.Translation.DisplayName.Values[Language.Id]"
+                                                  Label="Display Name"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  FullWidth="true" />
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                        No tabs found.
+                    </MudAlert>
+                }
+                }
+            </MudTabPanel>
+        </MudTabs>
+        }
+    </MudCardContent>
+</MudCard>
+
+<EditorActionBar HasChanges="@HasChanges"
+                 IsSaving="@_isSaving"
+                 EnableFileSaving="true"
+                 OnSave="HandleSave"
+                 OnReset="HandleReset" />

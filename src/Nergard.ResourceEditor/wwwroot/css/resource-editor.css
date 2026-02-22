@@ -1,0 +1,229 @@
+/* Resource Editor - UI Styles */
+/* All classes use .re-* prefix (resource-editor namespace) */
+
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+    --re-primary: #3F51B5;
+    --re-primary-light: #C5CAE9;
+    --re-primary-dark: #303F9F;
+    --re-accent: #536DFE;
+    --re-sidebar-width: 240px;
+    --re-transition-speed: 0.3s;
+    --re-border-radius: 8px;
+}
+
+/* ========================================
+   Layout
+   ======================================== */
+.re-layout {
+    min-height: calc(100vh - 96px); /* 64px appbar + 32px container padding */
+}
+
+/* ========================================
+   Sidebar (MudDrawer)
+   ======================================== */
+.re-drawer {
+    border-right: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface) !important;
+}
+
+.re-drawer-header {
+    background: linear-gradient(135deg, var(--re-primary) 0%, var(--re-accent) 100%);
+    color: white !important;
+    display: flex;
+    align-items: center;
+}
+
+.re-drawer-header .mud-icon-root {
+    color: white !important;
+}
+
+.re-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 8px 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   Main Content Area
+   ======================================== */
+.re-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 24px 24px;
+    background: var(--mud-palette-background);
+}
+
+/* ========================================
+   Card Header
+   ======================================== */
+.re-card-header {
+    background: linear-gradient(135deg, var(--re-primary) 0%, var(--re-accent) 100%);
+    color: white;
+}
+
+/* ========================================
+   Action Bar
+   ======================================== */
+.re-action-bar {
+    gap: 12px;
+}
+
+.re-action-bar.mud-appbar {
+    padding-left: calc(var(--re-sidebar-width) + 24px) !important;
+}
+
+.re-action-bar .mud-toolbar {
+    padding-left: calc(var(--re-sidebar-width) + 24px) !important;
+}
+
+/* ========================================
+   Language Filter
+   ======================================== */
+.re-language-filter {
+    max-width: 250px;
+    margin-bottom: 20px;
+}
+
+/* ========================================
+   Property Panel Header
+   ======================================== */
+.re-property-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.re-property-panel-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+/* ========================================
+   Unsaved Changes Indicator
+   ======================================== */
+.re-unsaved-indicator {
+    position: relative;
+}
+
+.re-unsaved-indicator::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--mud-palette-warning);
+    border-radius: 4px 0 0 4px;
+    animation: re-pulse 2s infinite;
+}
+
+@keyframes re-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* ========================================
+   Editor Animation
+   ======================================== */
+.re-editor-enter {
+    animation: re-fade-in 0.3s ease;
+}
+
+@keyframes re-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   Scrollbar Styling
+   ======================================== */
+.re-sidebar-content::-webkit-scrollbar,
+.re-main::-webkit-scrollbar {
+    width: 6px;
+}
+
+.re-sidebar-content::-webkit-scrollbar-track,
+.re-main::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.re-sidebar-content::-webkit-scrollbar-thumb,
+.re-main::-webkit-scrollbar-thumb {
+    background: var(--mud-palette-lines-default);
+    border-radius: 3px;
+}
+
+.re-sidebar-content::-webkit-scrollbar-thumb:hover,
+.re-main::-webkit-scrollbar-thumb:hover {
+    background: var(--mud-palette-text-disabled);
+}
+
+/* ========================================
+   Localizable Text Field (Override Support)
+   ======================================== */
+.re-localizable-field-input > .mud-input-control {
+    flex: 1;
+}
+
+.re-override-preview {
+    padding: 6px 10px;
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px dashed var(--mud-palette-warning);
+    border-radius: 4px;
+}
+
+.mud-theme-dark .re-override-preview {
+    background: rgba(255, 152, 0, 0.15);
+}
+
+.re-override-value {
+    flex: 1;
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.re-override-delete {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.re-override-delete:hover {
+    opacity: 1;
+}
+
+/* Indicator when field has override */
+.re-has-override .mud-input-outlined .mud-input-outlined-border {
+    border-color: var(--mud-palette-warning) !important;
+}
+
+.re-has-override .mud-input-label {
+    color: var(--mud-palette-warning) !important;
+}
+
+/* Disabled field styling (when file saving is off) */
+.re-localizable-field-input .mud-input-control-input-container.mud-disabled {
+    opacity: 0.7;
+}
+
+.re-localizable-field-input .mud-disabled .mud-input {
+    background: var(--mud-palette-background-grey);
+}

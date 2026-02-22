@@ -1,0 +1,117 @@
+@using MudBlazor
+
+<MudDrawer Open="@Open" OpenChanged="OnOpenChanged" Anchor="Anchor.End" Elevation="1" Variant="DrawerVariant.Temporary" Width="450px">
+    <MudDrawerHeader>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+            <MudIcon Icon="@Icons.Material.Filled.Help" Color="Color.Primary" />
+            <MudText Typo="Typo.h5">Resource Editor Help</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" Size="Size.Small" />
+        </MudStack>
+    </MudDrawerHeader>
+
+    <div class="pa-4">
+        @* Getting Started *@
+        <MudText Typo="Typo.h6" Class="mb-2">Getting Started</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            The Resource Editor lets you manage translations for content types, properties, and tabs
+            across all enabled languages in your Optimizely CMS instance.
+        </MudText>
+        <MudList T="string" Dense="true" Gutters="false">
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Select an item from the left menu to start editing</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Use the language dropdown to filter by a specific language</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Click the Dashboard icon to return to the overview</MudText>
+            </MudListItem>
+        </MudList>
+
+        <MudDivider Class="my-4" />
+
+        @* Dashboard *@
+        <MudText Typo="Typo.h6" Class="mb-2">Dashboard</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            The dashboard shows a card per language with translation completeness percentages.
+            Click a language card to open a detailed view where you can review missing translations
+            and use bulk actions to fill them in.
+        </MudText>
+
+        <MudDivider Class="my-4" />
+
+        @* Editing Translations *@
+        <MudText Typo="Typo.h6" Class="mb-2">Editing Translations</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Modify display names and descriptions for each language. Changes are tracked
+            automatically and must be saved explicitly.
+        </MudText>
+        <MudList T="string" Dense="true" Gutters="false">
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">An "Unsaved" badge appears when you have pending changes</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Use Reset to discard changes and reload from the server</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.ChevronRight" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Navigating away with unsaved changes will prompt a confirmation</MudText>
+            </MudListItem>
+        </MudList>
+
+        <MudDivider Class="my-4" />
+
+        @* Automated Translation *@
+        <MudText Typo="Typo.h6" Class="mb-2">Automated Translation</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            When enabled, automated translation can translate missing fields from the
+            default language. Translated values are marked as unsaved until you save them.
+        </MudText>
+        <MudList T="string" Dense="true" Gutters="false">
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Per-field — Click the translate icon next to any field</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Per-item — Use "Translate Missing" in the editor header to fill all empty fields at once</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Translate" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Bulk — Use "Translate Incomplete" on a language card to translate all missing entries for that language</MudText>
+            </MudListItem>
+        </MudList>
+
+        <MudDivider Class="my-4" />
+
+        @* Overrides *@
+        <MudText Typo="Typo.h6" Class="mb-2">Overrides</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Overrides let you change property captions and help texts at runtime without redeploying.
+            They are stored in the Dynamic Data Store and take precedence over XML-based translations.
+        </MudText>
+        <MudList T="string" Dense="true" Gutters="false">
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Add" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Add Override — Pick a content type, property, and language, then set caption and/or help text</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.FileDownload" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Export/Import — Use CSV to back up or bulk-load overrides</MudText>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Delete" IconSize="Size.Small">
+                <MudText Typo="Typo.body2">Deleting an override restores the original XML translation</MudText>
+            </MudListItem>
+        </MudList>
+    </div>
+</MudDrawer>
+
+@code {
+    [Parameter] public bool Open { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+
+    private async Task OnOpenChanged(bool value)
+    {
+        await OpenChanged.InvokeAsync(value);
+    }
+
+    private async Task Close()
+    {
+        await OpenChanged.InvokeAsync(false);
+    }
+}

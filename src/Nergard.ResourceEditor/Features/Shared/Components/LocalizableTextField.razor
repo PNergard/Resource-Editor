@@ -1,0 +1,173 @@
+@using Microsoft.Extensions.Options
+@using Nergard.ResourceEditor.Features.Overrides.Services
+@using Nergard.ResourceEditor.Features.Shared.Models
+
+<MudStack Spacing="1">
+    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1" Class="re-localizable-field-input">
+        <MudTextField T="string"
+                      Value="@Value"
+                      ValueChanged="@(EventCallback.Factory.Create<string>(this, OnValueChanged))"
+                      Label="@Label"
+                      Variant="Variant"
+                      Margin="Margin"
+                      Lines="Lines"
+                      FullWidth="true"
+                      Disabled="@(!Options.Value.EnableFileSaving)"
+                      Class="@(HasOverride ? "re-has-override" : "")" />
+
+        @if (ShowTranslate && !string.IsNullOrWhiteSpace(SourceValue))
+        {
+            <MudTooltip Text="@(_isTranslating ? "Translating..." : "Translate from default language")">
+                <MudIconButton Icon="@Icons.Material.Filled.AutoFixHigh"
+                               Size="Size.Small"
+                               Color="Color.Primary"
+                               OnClick="TranslateField"
+                               Disabled="@_isTranslating"
+                               Style="margin-top: 8px;" />
+            </MudTooltip>
+        }
+
+        @if (Options.Value.EnableOverrides && Options.Value.ShowOverridesUI && !HasOverride)
+        {
+            <MudTooltip Text="Add override">
+                <MudIconButton Icon="@Icons.Material.Outlined.Bolt"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               OnClick="OpenOverrideDialog"
+                               Style="margin-top: 8px;" />
+            </MudTooltip>
+        }
+    </MudStack>
+
+    @if (HasOverride && Options.Value.ShowOverridesUI)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="re-override-preview">
+            <MudText Typo="Typo.overline" Color="Color.Warning" Style="font-weight: 600;">Override:</MudText>
+            <MudText Typo="Typo.body2" Class="re-override-value">@_overrideValue</MudText>
+            <MudTooltip Text="Edit override">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               OnClick="OpenOverrideDialog" />
+            </MudTooltip>
+            <MudTooltip Text="Delete override">
+                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="DeleteOverride"
+                               Class="re-override-delete" />
+            </MudTooltip>
+        </MudStack>
+    }
+</MudStack>
+
+<MudDialog @bind-Visible="_showOverrideDialog" Options="@(new DialogOptions { MaxWidth = DialogMaxWidth, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Warning" Class="mr-2" />
+            @(HasOverride ? "Edit Override" : "Create Override")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            @if (!string.IsNullOrEmpty(ContentTypeName) && !string.IsNullOrEmpty(PropertyName))
+            {
+                <strong>@ContentTypeName</strong> <span>→</span> <strong>@PropertyName</strong><br />
+            }
+            else if (!string.IsNullOrEmpty(ContentTypeName))
+            {
+                <strong>@ContentTypeName</strong><br />
+            }
+            else
+            {
+                <strong>Key:</strong> <code>@LocalizationKey</code><br />
+            }
+            <strong>Language:</strong> @Language
+        </MudAlert>
+
+        <MudTextField @bind-Value="_editOverrideValue"
+                      Label="Override Value"
+                      Variant="Variant.Outlined"
+                      Lines="@Math.Max(Lines, 2)"
+                      FullWidth="true"
+                      HelperText="This value will be used instead of the XML translation" />
+
+        @if (!string.IsNullOrEmpty(Value))
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                <strong>Current XML value:</strong> @Value
+            </MudText>
+        }
+
+        @if (ShowMultiLanguage)
+        {
+            <MudDivider Class="my-4" />
+            <MudExpansionPanels Elevation="0">
+                <MudExpansionPanel Expanded="_showLanguageExpansion"
+                                   ExpandedChanged="@((bool expanded) => { _showLanguageExpansion = expanded; if (expanded) LoadLanguageRows(); })">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Translate" Size="Size.Small" />
+                            <MudText Typo="Typo.subtitle2">Translate to other languages</MudText>
+                            @if (_languageRows.Count > 0)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@_languageRows.Count</MudChip>
+                            }
+                            <MudSpacer />
+                            @if (_showLanguageExpansion && _languageRows.Count > 0)
+                            {
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                                           OnClick="TranslateAllEmpty"
+                                           Disabled="@(_isTranslatingAll || string.IsNullOrWhiteSpace(_editOverrideValue))">
+                                    @(_isTranslatingAll ? "Translating..." : "Translate Empty")
+                                </MudButton>
+                            }
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+                        @if (_languageRows.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No other languages available.</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="2">
+                                @foreach (var row in _languageRows)
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudChip T="string" Size="Size.Small" Color="@(string.IsNullOrEmpty(row.ExistingValue) ? Color.Default : Color.Success)"
+                                                 Style="min-width: 80px;">
+                                            @row.Language.Name
+                                        </MudChip>
+                                        <MudTextField @bind-Value="row.EditValue"
+                                                      Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense"
+                                                      FullWidth="true"
+                                                      Disabled="row.IsTranslating"
+                                                      Placeholder="@(row.IsTranslating ? "Translating..." : "")" />
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        }
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (HasOverride)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="DeleteOverride" Class="mr-auto">
+                Delete Override
+            </MudButton>
+        }
+        <MudButton Variant="Variant.Text" OnClick="CloseOverrideDialog">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveOverride"
+                   Disabled="@string.IsNullOrWhiteSpace(_editOverrideValue)">
+            Save Override
+        </MudButton>
+    </DialogActions>
+</MudDialog>

@@ -1,0 +1,187 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+@using Nergard.ResourceEditor.Features.Shared.Models
+@using Nergard.ResourceEditor.Features.Views.Models
+@inherits EditorComponentBase<ViewTranslation>
+
+<MudCard Elevation="2" Class="@(Translation.HasChanges ? "re-unsaved-indicator re-editor-enter" : "re-editor-enter")"
+         Style="padding-bottom: 72px;">
+    <MudCardHeader Class="re-card-header">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.WebAsset" />
+                <MudText Typo="Typo.h6">@Translation.DisplayName</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (Translation.HasChanges)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Class="ma-0">
+                    Unsaved
+                </MudChip>
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudToolBar Dense="true" Style="padding: 0;">
+            <div class="re-language-filter">
+                <LanguageFilter SelectedLanguageId="@SelectedLanguageId"
+                                SelectedLanguageIdChanged="OnLanguageFilterChanged"
+                                Languages="Languages" />
+            </div>
+            <MudSpacer />
+            @if (Options.Value.EnableAutomatedTranslation && IsTranslationAvailable)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                           OnClick="TranslateMissingFieldsAsync"
+                           Disabled="@IsTranslating"
+                           Class="mr-2">
+                    @(IsTranslating ? "Translating..." : "Translate Missing")
+                </MudButton>
+            }
+            @if (EnableStructureEditing)
+            {
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CreateNewFolder"
+                           Size="Size.Small"
+                           OnClick="OpenAddSectionDialog"
+                           Class="mr-2">
+                    Add Section
+                </MudButton>
+            }
+            <MudTooltip Text="@(_allExpanded ? "Collapse all" : "Expand all")">
+                <MudIconButton Icon="@(_allExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                               Size="Size.Small"
+                               OnClick="ToggleAllExpanded" />
+            </MudTooltip>
+        </MudToolBar>
+
+        @foreach (var viewSection in Translation.Sections)
+        {
+            <div class="mb-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                    <MudText Typo="Typo.h6">
+                        @viewSection.DisplayName (@viewSection.Entries.Count)
+                    </MudText>
+                    <MudSpacer />
+                    @if (EnableStructureEditing)
+                    {
+                        <MudTooltip Text="Add key to this section">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => OpenAddKeyDialog(viewSection))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete entire section">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => OpenDeleteSectionDialog(viewSection))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+                <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                    @foreach (var entry in viewSection.Entries)
+                    {
+                        <MudExpansionPanel Expanded="@_allExpanded">
+                            <TitleContent>
+                                <div class="re-property-panel-header">
+                                    <span class="re-property-panel-name">@entry.Key</span>
+                                    @if (EnableStructureEditing)
+                                    {
+                                        <span @onclick:stopPropagation="true">
+                                            <MudTooltip Text="Delete this key">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Size="Size.Small"
+                                                               Color="Color.Error"
+                                                               OnClick="@(() => OpenDeleteKeyDialog(viewSection, entry))" />
+                                            </MudTooltip>
+                                        </span>
+                                    }
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudGrid Spacing="3">
+                                    @foreach (var lang in FilteredLanguages)
+                                    {
+                                        <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                                            <LocalizableTextField @bind-Value="entry.Value.Values[lang.Id]"
+                                                                  Label="@lang.Name"
+                                                                  LocalizationKey="@GetViewKey(viewSection, entry)"
+                                                                  Language="@lang.Id"
+                                                                  ContentTypeName="@($"View: {viewSection.Name}/{entry.Key}")"
+                                                                  SourceValue="@(entry.Value.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                                                  FieldType="TranslationFieldType.ViewValue"
+                                                                  ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            </div>
+        }
+    </MudCardContent>
+</MudCard>
+
+<EditorActionBar HasChanges="@Translation.HasChanges"
+                 IsSaving="@IsSaving"
+                 EnableFileSaving="@Options.Value.EnableFileSaving"
+                 OnSave="OnSave"
+                 OnReset="OnReset" />
+
+@* Add Section/Key Dialog *@
+<MudDialog @bind-Visible="_showAddDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@_addDialogTitle</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_addItemName"
+                      Label="@(_addToSection == null ? "Section Name" : "Key Name")"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      AutoFocus="true"
+                      HelperText="@(_addToSection == null ? "Name for the new XML section element" : "Name for the new XML key element")" />
+        @if (!string.IsNullOrEmpty(_addValidationError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-2">@_addValidationError</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => _showAddDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmAdd" Disabled="@(string.IsNullOrWhiteSpace(_addItemName))">Add</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Delete Confirmation Dialog *@
+<MudDialog @bind-Visible="_showDeleteDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-2" />
+            Confirm Delete
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_deleteSectionTarget != null)
+        {
+            <MudText>Are you sure you want to delete the entire section <strong>@_deleteSectionTarget.DisplayName</strong>?</MudText>
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                This will remove the section and all <strong>@_deleteSectionTarget.Entries.Count</strong> key(s) within it.
+            </MudAlert>
+        }
+        else if (_deleteEntryTarget != null)
+        {
+            <MudText>Are you sure you want to delete the key <strong>@_deleteEntryTarget.Key</strong> from <strong>@_deleteEntrySection?.DisplayName</strong>?</MudText>
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                This will remove the key and its translations in all languages.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => _showDeleteDialog = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="ExecuteDelete">Delete</MudButton>
+    </DialogActions>
+</MudDialog>

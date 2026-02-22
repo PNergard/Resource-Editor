@@ -1,0 +1,173 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+@using Nergard.ResourceEditor.Features.Shared.Models
+@using Nergard.ResourceEditor.Features.ContentTypes.Models
+@inherits EditorComponentBase<ContentTypeTranslation>
+
+<MudCard Elevation="2" Class="@(Translation.HasChanges ? "re-unsaved-indicator re-editor-enter" : "re-editor-enter")"
+         Style="padding-bottom: 72px;">
+    <MudCardHeader Class="re-card-header">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Description" />
+                <MudText Typo="Typo.h6">@Translation.ContentTypeName</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (Translation.HasChanges)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Class="ma-0">
+                    Unsaved
+                </MudChip>
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @* Language Filter & Translate *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+            <LanguageFilter SelectedLanguageId="@SelectedLanguageId"
+                            SelectedLanguageIdChanged="OnLanguageFilterChanged"
+                            Languages="Languages" />
+            <MudSpacer />
+            @if (Options.Value.EnableAutomatedTranslation && IsTranslationAvailable)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                           OnClick="TranslateMissingFieldsAsync"
+                           Disabled="@IsTranslating">
+                    @(IsTranslating ? "Translating..." : "Translate Missing")
+                </MudButton>
+            }
+        </MudStack>
+
+        @* Name Section *@
+        <div class="mb-6">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                @UIStrings.LabelName
+            </MudText>
+            <MudGrid Spacing="3">
+                @foreach (var lang in FilteredLanguages)
+                {
+                    <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                        <LocalizableTextField @bind-Value="Translation.Name.Values[lang.Id]"
+                                              Label="@lang.Name"
+                                              LocalizationKey="@GetNameKey()"
+                                              Language="@lang.Id"
+                                              ContentTypeName="@Translation.ContentTypeName"
+                                              SourceValue="@(Translation.Name.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                              FieldType="TranslationFieldType.ContentTypeName"
+                                              ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
+
+        @* Description Section *@
+        <div class="mb-6">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                @UIStrings.LabelDescription
+            </MudText>
+            <MudGrid Spacing="3">
+                @foreach (var lang in FilteredLanguages)
+                {
+                    <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                        <LocalizableTextField @bind-Value="Translation.Description.Values[lang.Id]"
+                                              Label="@lang.Name"
+                                              LocalizationKey="@GetDescriptionKey()"
+                                              Language="@lang.Id"
+                                              Lines="3"
+                                              ContentTypeName="@Translation.ContentTypeName"
+                                              SourceValue="@(Translation.Description.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                              FieldType="TranslationFieldType.ContentTypeDescription"
+                                              ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                    </MudItem>
+                }
+            </MudGrid>
+        </div>
+
+        @* Properties Section *@
+        @if (Translation.Properties.Count > 0)
+        {
+            <div class="mb-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                    <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">Properties (@Translation.Properties.Count)</MudText>
+                    <MudSpacer />
+                    <MudTooltip Text="@(_propertiesExpanded ? "Collapse all" : "Expand all")">
+                        <MudIconButton Icon="@(_propertiesExpanded ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                                       Size="Size.Small"
+                                       OnClick="TogglePropertiesExpanded" />
+                    </MudTooltip>
+                </MudStack>
+
+                <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                    @foreach (var prop in Translation.Properties)
+                    {
+                        <MudExpansionPanel Expanded="@_propertiesExpanded">
+                            <TitleContent>
+                                <div class="re-property-panel-header">
+                                    <span class="re-property-panel-name">@prop.PropertyName</span>
+                                    @if (SharedPropertyService.IsShared(prop.PropertyName))
+                                    {
+                                        <MudTooltip Text="@GetSharedTooltip(prop.PropertyName)">
+                                            <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small"
+                                                     Color="Color.Info" Class="re-shared-icon" />
+                                        </MudTooltip>
+                                    }
+                                    <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small"
+                                             Color="@GetPropertyStatus(prop)" />
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                @* Property Label *@
+                                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1">Label</MudText>
+                                <MudGrid Spacing="3">
+                                    @foreach (var lang in FilteredLanguages)
+                                    {
+                                        <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                                            <LocalizableTextField @bind-Value="prop.Label.Values[lang.Id]"
+                                                                  Label="@lang.Name"
+                                                                  LocalizationKey="@GetPropertyLabelKey(prop.PropertyName)"
+                                                                  Language="@lang.Id"
+                                                                  ContentTypeName="@Translation.ContentTypeName"
+                                                                  PropertyName="@prop.PropertyName"
+                                                                  SourceValue="@(prop.Label.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                                                  FieldType="TranslationFieldType.PropertyLabel"
+                                                                  ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+
+                                @* Property Description *@
+                                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-1 mt-2">Description</MudText>
+                                <MudGrid Spacing="3">
+                                    @foreach (var lang in FilteredLanguages)
+                                    {
+                                        <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                                            <LocalizableTextField @bind-Value="prop.Description.Values[lang.Id]"
+                                                                  Label="@lang.Name"
+                                                                  LocalizationKey="@GetPropertyDescriptionKey(prop.PropertyName)"
+                                                                  Language="@lang.Id"
+                                                                  Lines="2"
+                                                                  ContentTypeName="@Translation.ContentTypeName"
+                                                                  PropertyName="@prop.PropertyName"
+                                                                  SourceValue="@(prop.Description.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                                                  FieldType="TranslationFieldType.PropertyDescription"
+                                                                  ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            </div>
+        }
+    </MudCardContent>
+</MudCard>
+
+<EditorActionBar HasChanges="@Translation.HasChanges"
+                 IsSaving="@IsSaving"
+                 EnableFileSaving="@Options.Value.EnableFileSaving"
+                 OnSave="OnSave"
+                 OnReset="OnReset" />

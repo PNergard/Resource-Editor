@@ -1,0 +1,94 @@
+@using Nergard.ResourceEditor.Features.Shared.Constants
+@using Nergard.ResourceEditor.Features.Shared.Models
+@using Nergard.ResourceEditor.Features.EditorHints.Models
+@inherits EditorComponentBase<EditorHintTranslation>
+
+<MudCard Elevation="2" Class="@(Translation.HasChanges ? "re-unsaved-indicator re-editor-enter" : "re-editor-enter")"
+         Style="padding-bottom: 72px;">
+    <MudCardHeader Class="re-card-header">
+        <CardHeaderContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.HelpOutline" />
+                <MudText Typo="Typo.h6">Editor Hints</MudText>
+            </MudStack>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            @if (Translation.HasChanges)
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Class="ma-0">
+                    Unsaved
+                </MudChip>
+            }
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @* Language Filter & Translate *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+            <LanguageFilter SelectedLanguageId="@SelectedLanguageId"
+                            SelectedLanguageIdChanged="OnLanguageFilterChanged"
+                            Languages="Languages" />
+            <MudSpacer />
+            @if (Options.Value.EnableAutomatedTranslation && IsTranslationAvailable)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                           OnClick="TranslateMissingFieldsAsync"
+                           Disabled="@IsTranslating">
+                    @(IsTranslating ? "Translating..." : "Translate Missing")
+                </MudButton>
+            }
+        </MudStack>
+
+        @foreach (var hintSection in Translation.Sections)
+        {
+            <div class="mb-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="padding-bottom: 8px; border-bottom: 1px solid var(--mud-palette-lines-default);">
+                    <MudText Typo="Typo.h6">@hintSection.DisplayName (@hintSection.Entries.Count)</MudText>
+                    <MudSpacer />
+                    <MudTooltip Text="@(IsSectionExpanded(hintSection.Name) ? "Collapse all" : "Expand all")">
+                        <MudIconButton Icon="@(IsSectionExpanded(hintSection.Name) ? Icons.Material.Filled.UnfoldLess : Icons.Material.Filled.UnfoldMore)"
+                                       Size="Size.Small"
+                                       OnClick="@(() => ToggleSectionExpanded(hintSection.Name))" />
+                    </MudTooltip>
+                </MudStack>
+                <MudExpansionPanels MultiExpansion="true" Elevation="0" Dense="true">
+                    @foreach (var entry in hintSection.Entries)
+                    {
+                        <MudExpansionPanel Expanded="@IsSectionExpanded(hintSection.Name)">
+                            <TitleContent>
+                                <div class="re-property-panel-header">
+                                    <span class="re-property-panel-name">@GetEntryLabel(entry)</span>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudGrid Spacing="3">
+                                    @foreach (var lang in FilteredLanguages)
+                                    {
+                                        <MudItem xs="12" sm="@(IsSingleLanguage ? 12 : 6)" md="@(IsSingleLanguage ? 12 : 4)" lg="@(IsSingleLanguage ? 12 : 3)">
+                                            <LocalizableTextField @bind-Value="entry.Value.Values[lang.Id]"
+                                                                  Label="@lang.Name"
+                                                                  LocalizationKey="@GetHintKey(hintSection, entry)"
+                                                                  Language="@lang.Id"
+                                                                  ContentTypeName="@hintSection.DisplayName"
+                                                                  PropertyName="@entry.Key"
+                                                                  SourceValue="@(entry.Value.Values.GetValueOrDefault(DefaultLanguageId, ""))"
+                                                                  FieldType="TranslationFieldType.EditorHintValue"
+                                                                  ShowTranslate="@(IsTranslationAvailable && lang.Id != DefaultLanguageId)" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            </div>
+        }
+    </MudCardContent>
+</MudCard>
+
+<EditorActionBar HasChanges="@Translation.HasChanges"
+                 IsSaving="@IsSaving"
+                 EnableFileSaving="@Options.Value.EnableFileSaving"
+                 OnSave="OnSave"
+                 OnReset="OnReset" />

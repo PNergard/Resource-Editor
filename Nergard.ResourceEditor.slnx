@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Nergard.ResourceEditor/Nergard.ResourceEditor.csproj" />
+  </Folder>
+</Solution>
