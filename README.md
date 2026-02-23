@@ -22,7 +22,8 @@ services.AddMudServices();
 services.AddResourceEditor(configuration);
 ```
 
-See the [full blog post](docs/blogpost.md) for detailed setup instructions, configuration options and screenshots.
+See the [full blog post](https://world.optimizely.com/blogs/Per-Nergard/Dates/2026/2/resource-editor---a-localization-management-tool-for-optimizely-cms/) for detailed setup instructions, configuration options and screenshots.
+
 
 <!-- TODO: Add link to published blog post -->
 
